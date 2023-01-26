@@ -1,0 +1,14 @@
+1- Não há necessidade de adicionarmos campo a nossa tabela interna.
+2- Adicionar propriedade a variável ls_layout-ctab_fname = 'COLOR_CELL'. "Está dando DUMP quando adicionado
+3- Adicionar propriedade ao fieldcat ls_fieldcat-emphasize = p_emphasize, onde
+   o valor de emphasize é a cor que queremos colorir a celula.
+
+Chamamos o FORM do fieldcat passando a cor que queremos dessa forma:
+
+PERFORM f_fieldcat USING:
+  'PEINH'  'PEINH'  'EKPO'  ''         ''      ''  CHANGING lt_fieldcat[],
+  'WEMNG'  'MENGE'  'EKBE'  'Qtde EM'  'C500'  ''  CHANGING lt_fieldcat[].
+
+OBS.:
+ C500 é a cor da celula. Para as outras celular que não são atribuídas cores o valor 
+ será o defult do usuário.

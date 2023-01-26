@@ -1,0 +1,43 @@
+Para agrupar campos no ALV, temos que criar uma tabela do tipo lvc_s_sort e configurá-la.
+
+DATA: lt_sort TYPE TABLE OF lvc_s_sort,
+
+*&---------------------------------------------------------------------*
+*&      Form  F_BUILD_SORT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_build_sort  USING p_spos
+                         p_name
+                         p_up
+                         p_down
+                         p_group
+                         p_subtot
+                         p_expa.
+  DATA: ls_sort LIKE LINE OF lt_sort[].
+  ls_sort-spos      = p_spos.   "Não sei.
+  ls_sort-fieldname = p_name.   "Campo de seleção do agrupamento.
+  ls_sort-up        = p_up.     "Pelo maior valor.
+  ls_sort-down      = p_down.   "Pelo menor valor.
+  ls_sort-group     = p_group.  "Agrupar.
+  ls_sort-subtot    = p_subtot. "Subtotal.
+  ls_sort-expa      = p_expa.   "Expandido.
+  APPEND ls_sort TO lt_sort.
+ENDFORM.                    " F_BUILD_SORT
+
+---------------------------------------------------------------------------------------
+
+PERFORM f_build_sort USING:
+      ''  'EKNAM'  'X'  ''  ''  'X'  ' ',
+      ''  'NAME1'  'X'  ''  ''  'X'  ' '.
+
+CALL METHOD alv_obj->set_table_for_first_display
+  EXPORTING
+    is_variant      = wa_disvariant
+    i_save          = ´A´
+    is_layout       = wa_lvc_s_layo
+    is_print        = wa_alv_print
+  CHANGING
+    it_fieldcatalog = ti_lvc_t_fcat
+    it_sort         = lt_sort[]
+    it_outtab       = ti_eban[].

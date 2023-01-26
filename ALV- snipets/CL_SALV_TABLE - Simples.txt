@@ -1,0 +1,59 @@
+*&---------------------------------------------------------------------*
+*& Report  ZJEUNON
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT zjeunon.
+
+DATA: lo_salv_not_found TYPE REF TO cx_salv_not_found,
+      lo_salv_msg       TYPE REF TO cx_salv_msg,
+      lt_icons          TYPE TABLE OF icons,
+      lv_msg_erro       TYPE string.
+
+PERFORM f_build_grid USING lt_icons.
+
+
+FORM f_build_grid USING t_table TYPE ANY TABLE.
+
+  DATA: lo_alv        TYPE REF TO cl_salv_table,
+        lo_functions  TYPE REF TO cl_salv_functions_list,
+        lo_columns    TYPE REF TO cl_salv_columns_table,
+        lo_column     TYPE REF TO cl_salv_column_table,
+        lo_selections TYPE REF TO cl_salv_selections.
+
+  TRY.
+      cl_salv_table=>factory(
+        IMPORTING
+          r_salv_table = lo_alv
+        CHANGING
+          t_table      = t_table[]
+      ).
+
+      lo_functions = lo_alv->get_functions( ).
+      lo_functions->set_all( 'X' ).
+      lo_columns = lo_alv->get_columns( ).
+      lo_columns->set_optimize( abap_true ).
+
+      lo_selections = lo_alv->get_selections( ).
+      lo_selections->set_selection_mode( if_salv_c_selection_mode=>none ).
+
+*  lo_alv->set_screen_popup(
+*    start_column = 10
+*    end_column   = 100
+*    start_line   = 5
+*    end_line     = 13
+*  ).
+
+      lo_alv->display( ).
+    CATCH cx_salv_msg INTO lo_salv_msg.
+      CLEAR: lv_msg_erro.
+      lv_msg_erro = lo_salv_msg->get_text( ).
+    CATCH cx_salv_not_found INTO lo_salv_not_found.
+      CLEAR: lv_msg_erro.
+      lv_msg_erro = lo_salv_not_found->get_text( ).
+
+  ENDTRY.
+
+ENDFORM.

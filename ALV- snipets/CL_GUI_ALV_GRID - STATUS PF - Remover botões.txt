@@ -1,0 +1,19 @@
+CL_GUI_ALV_GRID - Status-PF (remover botões)
+Caso queiramos remover algum botão do STATUS-PF de acordo com alguma condição específica, 
+devemos fazer o seguinte:  
+
+"Declarar a variável:  
+DATA: lt_toolbar_func_disable TYPE ui_functions.  
+
+"Adicionar o nome dos botões (STATUS-PF) na estrutura a serem removidos.  
+ls_toolbar_func_disable = 'ADD'. 
+APPEND ls_toolbar_func_disable TO lt_toolbar_func_disable[].  
+
+ls_toolbar_func_disable = 'REMOVER'. 
+APPEND ls_toolbar_func_disable TO lt_toolbar_func_disable[].  
+
+ls_toolbar_func_disable = 'DEL_LINE'. 
+APPEND ls_toolbar_func_disable TO lt_toolbar_func_disable[].  
+
+"Chamar o Status excluindo os botões.  
+SET PF-STATUS 'STATUS100' EXCLUDING lt_toolbar_func_disable[].

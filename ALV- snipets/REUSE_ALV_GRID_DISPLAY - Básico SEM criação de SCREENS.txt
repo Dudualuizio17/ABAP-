@@ -1,0 +1,27 @@
+﻿ALV Padrão
+
+* Montar ALV sem criar uma SCREEN para chamar.
+
+TYPE-POOLS: slis. 
+
+DATA: lt_fieldcat TYPE slis_t_fieldcat_alv,
+      ls_layout   TYPE slis_layout_alv.
+	
+"Cria o it_fieldcat[] com base em uma estrutura de dados criada na SE11.
+CALL FUNCTION 'REUSE_ALV_FIELDCATALOG_MERGE'
+  EXPORTING
+    i_structure_name = 'Estrutura de dados SE11'
+  CHANGING
+    ct_fieldcat      = lt_fieldcat[].
+		  
+ls_layout-colwidth_optimize = 'X'. "SIGGA56 - Coloca as colunas com as larguras configuradas automaticamente 
+
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+  EXPORTING
+    is_layout     = ls_layout
+    it_fieldcat   = lt_fieldcat[]
+  TABLES
+    t_outtab      = lt_saida[] "Tabela interna de saída. (Retorno dos dados)
+  EXCEPTIONS
+    program_error = 1
+    OTHERS        = 2.

@@ -1,0 +1,11 @@
+
+LOOP AT er_data_changed->mt_good_cells[] INTO ls_good.
+    "Pega o valor digitado.
+    er_data_changed->get_cell_value(
+      EXPORTING
+        i_row_id    = ls_good-row_id
+        i_fieldname = ls_good-fieldname
+      IMPORTING
+        e_value     = l_planetype
+    ).
+ENDLOOP.

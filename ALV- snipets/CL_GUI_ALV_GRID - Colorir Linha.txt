@@ -1,0 +1,6 @@
+1- Na tabela interna adicionar o campo: color(4) TYPE c. 
+2- Criar variável: layout TYPE lvc_s_layo.
+3- Adicionar o atributo de layout na construção do ALV: 
+      ls_layout-info_fname = 'COLOR'.
+4- Adicionar as cores na montagem da tabela interna:  
+      wa_qualquer-color = "C600".

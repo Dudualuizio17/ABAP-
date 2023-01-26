@@ -1,0 +1,30 @@
+Na construção do Grid chamar este FORM abaixo, logo após a chamada do método:
+CALL METHOD grid_100->set_table_for_first_display.
+
+Ex.: PERFORM f_set_foccus_grid USING lv_tabix_to_foccus "linha a ser apontada no grid
+                                     'DIAS_VALIDADE'    "campo da tabela 
+                                     lo_grid_100b.      "Grid a focar
+
+**************************************************************************************
+FORM f_set_foccus_grid USING u_line_number TYPE i
+                             u_fieldname   TYPE string
+                             u_grid        TYPE REF TO cl_gui_alv_grid.
+
+  DATA: es_row_id TYPE lvc_s_row,
+        es_col_id TYPE lvc_s_col.
+
+  es_row_id-index     = u_line_number.
+  es_col_id-fieldname = u_fieldname.
+
+  cl_gui_control=>set_focus(
+    EXPORTING
+      control = u_grid
+  ).
+
+  u_grid->set_current_cell_via_id(
+    EXPORTING
+      is_row_id    = es_row_id
+      is_column_id = es_col_id
+  ).
+
+ENDFORM.

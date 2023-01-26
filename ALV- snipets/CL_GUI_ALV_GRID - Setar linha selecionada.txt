@@ -1,0 +1,32 @@
+DATA: lt_row_no     TYPE lvc_t_roid,
+      lt_index_rows TYPE lvc_t_row,
+      ls_row_no     LIKE LINE OF lt_row_no[],
+      ls_index_rows LIKE LINE OF lt_index_rows[].
+
+Para esse exemplo, eu preciso selecionar a linha definida como padrão através da consulta de uma tabela:
+
+SELECT DISTINCT t10~opcao t10~descricao t09~padrao
+  INTO TABLE lt_tipo_etiqueta[]
+  FROM zdift010 AS t10
+    INNER JOIN zdift009 AS t09 ON t10~model_etq EQ t09~model_etq AND t10~opcao EQ t09~opcao
+  WHERE t09~userz EQ sy-uname.
+
+lo_grid_1000->set_table_for_first_display(
+).
+
+"Adicionar esse trecho de código após o lo_grid_1000->set_table_for_first_display.
+LOOP AT lt_tipo_etiqueta[] ASSIGNING FIELD-SYMBOL(<fs_tipo_etiqueta>).
+  IF <fs_tipo_etiqueta>-marcado EQ 'X'.
+    ls_row_no-row_id = sy-tabix.
+    APPEND ls_row_no TO lt_row_no[].
+
+    ls_index_rows-index = sy-tabix.
+    APPEND ls_index_rows TO lt_index_rows[].
+  ENDIF.
+ENDLOOP.
+
+"Seleciona linhas automaticamente.
+lo_grid_1000->set_selected_rows(
+  it_index_rows = lt_index_rows[]
+  it_row_no     = lt_row_no[]
+).

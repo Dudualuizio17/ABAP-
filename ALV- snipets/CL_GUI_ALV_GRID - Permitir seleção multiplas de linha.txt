@@ -1,0 +1,22 @@
+IF lo_grid_100 IS INITIAL.
+    CREATE OBJECT lo_grid_100
+      EXPORTING
+        i_parent = cl_gui_custom_container=>default_screen.
+	
+    "Permite selecionar mais de uma linha do grid.
+    lo_grid_100->set_ready_for_input( 1 ).
+
+    lo_grid_100->set_table_for_first_display(
+      EXPORTING
+        is_variant      = lv_variant
+        i_save          = 'A'
+        is_layout       = lv_layout
+      CHANGING
+        it_fieldcatalog = lt_fieldcat[]   "Tabela com as configurações do Grid
+        it_outtab       = lt_operations[] "Nossa tabela de dados
+    ).
+
+  ELSE.
+    lo_grid_100->refresh_table_display( ). "Atualiza os dados do grid caso haja algum evento que modifique
+                                           "seu conteúdo.
+  ENDIF.

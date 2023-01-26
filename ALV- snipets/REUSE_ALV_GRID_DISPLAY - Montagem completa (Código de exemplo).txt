@@ -1,0 +1,272 @@
+*&---------------------------------------------------------------------*
+*& Report  ZJEUNON
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT zjeunon.
+
+TYPE-POOLS: slis.
+
+TYPES:
+  BEGIN OF ly_ekko.
+        INCLUDE TYPE zst_ekko_teste.
+TYPES: tabcolor TYPE slis_t_specialcol_alv, " Cell color
+       END OF ly_ekko.
+
+DATA: lt_ekko      TYPE ztt_ekko_teste,
+      lt_ekko_cell TYPE TABLE OF ly_ekko,
+      lt_sort      TYPE slis_t_sortinfo_alv,
+      lt_fieldcat  TYPE slis_t_fieldcat_alv,
+      lt_top       TYPE slis_t_listheader,
+      lt_event     TYPE slis_t_event,
+      ls_layout    TYPE slis_layout_alv,
+      ls_variant   TYPE disvariant,
+      ls_print     TYPE slis_print_alv, "impressora
+      ls_sort      LIKE LINE OF lt_sort[],
+      ls_fieldcat  LIKE LINE OF lt_fieldcat[],
+      ls_extab     TYPE slis_extab,
+      lv_repid     TYPE sy-repid.
+
+START-OF-SELECTION.
+  PERFORM f_build_alv.
+
+*&---------------------------------------------------------------------*
+*&      Form  F_COLORIR_CELULA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_colorir_celula USING lv_fieldname TYPE lvc_fname
+                   CHANGING cs_ekko      TYPE ly_ekko.
+
+  DATA: ls_tabcolor TYPE slis_specialcol_alv.
+  ls_tabcolor-fieldname = lv_fieldname.
+  ls_tabcolor-color-col = 6.       " Red.
+  ls_tabcolor-color-int = 0.
+  ls_tabcolor-color-inv = 0.
+  APPEND ls_tabcolor TO cs_ekko-tabcolor[].
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_BUILD_ALV
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_build_alv.
+
+  DATA: ls_event     TYPE slis_alv_event,
+        ls_ekko_cell LIKE LINE OF lt_ekko_cell[].
+
+  lv_repid = sy-cprog.
+  ls_layout-coltab_fieldname = 'TABCOLOR'. "Colorir célula
+
+  SELECT
+    ebeln   bukrs   bstyp
+    bsart   bsakz   statu
+    aedat   ernam   ekorg
+    ekgrp   memory  spras
+    INTO TABLE lt_ekko[]
+    FROM ekko
+    UP TO 100 ROWS.
+
+  LOOP AT lt_ekko[] ASSIGNING FIELD-SYMBOL(<fs_ekko>).
+    CLEAR: ls_ekko_cell.
+
+    MOVE-CORRESPONDING <fs_ekko> TO ls_ekko_cell.
+
+    IF <fs_ekko>-bsart EQ 'UD'.
+      PERFORM f_colorir_celula USING 'BSART'
+                            CHANGING ls_ekko_cell.
+    ENDIF.
+
+    APPEND ls_ekko_cell TO lt_ekko_cell[].
+  ENDLOOP.
+
+  CALL FUNCTION 'REUSE_ALV_FIELDCATALOG_MERGE'
+    EXPORTING
+      i_structure_name = 'ZST_EKKO_TESTE' "estrutura com os campos do select
+    CHANGING
+      ct_fieldcat      = lt_fieldcat[].
+
+  LOOP AT lt_fieldcat[] ASSIGNING FIELD-SYMBOL(<fs_fieldcat>).
+    CASE <fs_fieldcat>-fieldname.
+      WHEN 'EBELN'.
+        <fs_fieldcat>-key     = 'X'. "Campos chave
+        <fs_fieldcat>-hotspot = 'X'. "Hotspot para drill down na transação ME23N
+
+      WHEN 'BUKRS'.
+        <fs_fieldcat>-key = 'X'.
+
+      WHEN 'MEMORY'. "Campo checkbox editável.
+        <fs_fieldcat>-checkbox = 'X'.
+        <fs_fieldcat>-edit     = 'X'.
+
+      WHEN 'SPRAS'.
+        <fs_fieldcat>-no_out = 'X'. "Esconder campos do grid.
+
+      WHEN 'EKORG'.
+        <fs_fieldcat>-emphasize = 'C300'. "Colorir coluna.
+
+    ENDCASE.
+  ENDLOOP.
+
+  "Funciona como no USER-COMMAND
+  ls_event-name = 'DATA_CHANGED'.
+  ls_event-form = 'F_DATA_CHANGED'.
+  APPEND ls_event TO lt_event[].
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program       = lv_repid
+      i_callback_pf_status_set = 'F_CREATE_STATUS_PF'
+      i_callback_user_command  = 'F_USER_COMMAND'
+      i_callback_top_of_page   = 'F_TOP_OF_PAGE' "Cabeçalho do ALV
+      i_grid_title             = 'Título do Grid'
+      is_layout                = ls_layout
+      it_fieldcat              = lt_fieldcat[]
+      it_sort                  = lt_sort[]
+      i_default                = 'X'
+      i_save                   = ' '
+      is_variant               = ls_variant
+      it_events                = lt_event[]
+      i_screen_start_column    = 0
+      i_screen_start_line      = 0
+      i_screen_end_column      = 0
+      i_screen_end_line        = 0
+    TABLES
+      t_outtab                 = lt_ekko_cell[] "lt_ekko[]
+    EXCEPTIONS
+      program_error            = 1
+      OTHERS                   = 2.
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_DATA_CHANGED
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_data_changed USING ir_data_changed TYPE REF TO cl_alv_changed_data_protocol.
+
+  DATA: ls_modi TYPE lvc_s_modi.
+
+  LOOP AT ir_data_changed->mt_mod_cells[] INTO ls_modi.
+    CASE ls_modi-fieldname.
+      WHEN 'MEMORY'.
+
+    ENDCASE.
+  ENDLOOP.
+
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_CREATE_STATUS_PF
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_create_status_pf USING p_extab TYPE slis_t_extab.
+
+  SET PF-STATUS 'STATUS_Z'. "EXCLUDING p_extab.
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_USER_COMMAND
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_user_command USING p_ucomm      TYPE sy-ucomm
+                          p_s_selfield TYPE slis_selfield.
+  CASE p_ucomm.
+    WHEN 'BACK' OR 'EXIT'. "Criados dentro do PF-STATUS (STATUS_Z), porém não há necessidade de código. Eles já estão configurados.
+      "Não precisa de codificação (Criado como no CL_GUI_ALV_GRID).
+
+    WHEN 'INFO'. "Botão criado no PF-STATUS
+      CALL FUNCTION 'POPUP_TO_DISPLAY_TEXT'
+        EXPORTING
+          titel        = 'Informação'
+          textline1    = 'Teste para botão'
+          textline2    = ' '
+          start_column = 25
+          start_row    = 9.
+
+    WHEN '&IC1'. "Eventos do Grid.
+      CASE p_s_selfield-fieldname.
+        WHEN 'EBELN'.
+          SET PARAMETER ID 'BES' FIELD p_s_selfield-value. "Valor do campo clicado, tb poderia ter vindo da tabela LT_EKKO se tivéssemos lido ela pelo index da linha (tabindex)
+          CALL TRANSACTION 'ME23N' AND SKIP FIRST SCREEN.
+
+      ENDCASE.
+
+  ENDCASE.
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_TOP_OF_PAGE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_top_of_page.
+
+  PERFORM f_preenche_top_of_page.
+
+  CALL FUNCTION 'REUSE_ALV_COMMENTARY_WRITE'
+    EXPORTING
+      it_list_commentary = lt_top[]
+      i_logo             = 'RELOGIO96'.
+
+  "Para Adicionarmos a logo no servidor (i_logo), devemos utilizar a transação OAER e seguir os seguintes passos:
+  "1- Entrar com as seguintes informações:
+  "      Nome da classe.:  PICTURES (fixo)
+  "      Tipo de classe.:  OT       (fixo)
+  "      Chave de objeto: RELOGIO96 (nome da imagem que você quer colocar)
+  "2- Executar a transação
+  "3- Ná próxima tela, selecionar a aba CRIAR, no grid inferior, clicar 2x em TELA e selecionar a imagem para importar ao servidor.
+  "4- Cadastrar uma descrição e salvar.
+  "5- Já podemos chamar a imagem através da função REUSE_ALV_COMMENTARY_WRITE.
+
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_PREENCHE_TOP_OF_PAGE
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_preenche_top_of_page.
+
+  DATA: ls_top TYPE slis_listheader.
+
+  REFRESH: lt_top[].
+
+  "Primeira linha do cabeçalho
+  CLEAR: ls_top.
+  ls_top-typ  = 'H'. "H = Header
+  ls_top-info = 'Título do cabeçalho'.
+  APPEND ls_top TO lt_top[].
+
+  CLEAR: ls_top.
+  ls_top-typ  = 'S'. "S = Selection
+  ls_top-info = 'Centro: D056'.
+  APPEND ls_top TO lt_top[].
+
+  CLEAR: ls_top.
+  ls_top-typ  = 'S'. "S = Selection
+  ls_top-info = 'Fornecedor: 30009796'.
+  APPEND ls_top TO lt_top[].
+
+  CLEAR: ls_top.
+  ls_top-typ  = 'A'. "A = Action
+  ls_top-info = 'Cabeçalho - Raphael Jeunon'.
+  APPEND ls_top TO lt_top[].
+
+ENDFORM.

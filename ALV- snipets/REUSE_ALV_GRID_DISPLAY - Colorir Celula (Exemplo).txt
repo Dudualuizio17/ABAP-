@@ -1,0 +1,185 @@
+Basicamente é o seguinte:
+Adicione um campo a mais na definição da sua tabela :
+
+  BEGIN OF tp_data_ord_d,
+    aufnr   TYPE /sew/pp_cop_ord-aufnr,
+    sobsl   LIKE /sew/pp_cop_ord-sobsl,
+    matnr   TYPE /sew/pp_cop_ord-matnr,
+    maktx   LIKE makt-maktx,
+    gamng   LIKE afko-gamng,
+    gstrp   LIKE afko-gstrp,
+    gltrp   LIKE afko-gltrp,
+    seq     TYPE /sew/pp_cop_ord-seq,
+    dtlib   TYPE /sew/pp_cop_ord-dtlib,
+    usulib  TYPE /sew/pp_cop_ord-usulib,
+    bloq    TYPE /sew/pp_cop_ord-bloq,
+    cellcol TYPE slis_t_specialcol_alv," Cell color
+  END OF tp_data_ord_d,
+
+Declare na estrutura de layout qual campo definirá a cor da célula
+
+* Fill Layout
+  ls_layout-coltab_fieldname 
+
+Preenche para cada linha da tabela uma tabela com todos os campos e suas cores.
+Chama a função e pronto...
+
+REPORT z_alv_cell_color.
+*---------------------------------------------------------------------*
+* Example of ALV with Cell color                                      *
+*---------------------------------------------------------------------*
+* Author : Michel PIOUD                                               *
+* Email : mpioud@yahoo.fr  HomePage : http://www.geocities.com/mpioud *
+*---------------------------------------------------------------------*
+* Macro definition
+DEFINE m_fieldcat.
+  add 1 to ls_fieldcat-col_pos.
+  ls_fieldcat-fieldname   = &1.
+  ls_fieldcat-ref_tabname = &2.
+  append ls_fieldcat to lt_fieldcat.
+END-OF-DEFINITION.
+
+TYPE-POOLS: slis.                      " ALV Global types
+
+SELECTION-SCREEN :
+  SKIP, BEGIN OF LINE,COMMENT 5(27) v_1 FOR FIELD p_max.    "#EC NEEDED
+PARAMETERS p_max(2) TYPE n DEFAULT '30' OBLIGATORY.         "#EC *
+SELECTION-SCREEN END OF LINE.
+
+TYPES :
+  BEGIN OF ty_data,
+    vkorg TYPE vbak-vkorg,             " Sales organization
+    kunnr TYPE vbak-kunnr,             " Sold-to party
+    vbeln TYPE vbak-vbeln,             " Sales document
+    netwr TYPE vbak-netwr,             " Net Value of the Sales Order
+  END OF ty_data,
+
+* Data displayed
+  BEGIN OF ty_vbak,
+    vkorg TYPE vbak-vkorg,             " Sales organization
+    kunnr TYPE vbak-kunnr,             " Sold-to party
+    vbeln TYPE vbak-vbeln,             " Sales document
+    netwr TYPE vbak-netwr,             " Net Value of the Sales Order
+    tabcolor TYPE lvc_t_scol,          " Cell Color
+  END OF ty_vbak.
+
+DATA:
+  gt_data TYPE TABLE OF ty_data,
+* Data displayed
+  gt_vbak TYPE TABLE OF ty_vbak.
+
+*---------------------------------------------------------------------*
+INITIALIZATION.
+
+  v_1 = 'Maximum of records to read'.                       "#EC NOTEXT
+
+*---------------------------------------------------------------------*
+START-OF-SELECTION.
+
+  PERFORM f_read_data.
+  PERFORM f_fill_color.
+  PERFORM f_display_data.
+
+*---------------------------------------------------------------------*
+*      Form  f_read_data_vbak
+*---------------------------------------------------------------------*
+FORM f_read_data.
+
+  SELECT * INTO CORRESPONDING FIELDS OF TABLE gt_data
+           FROM vbak UP TO p_max ROWS.
+
+ENDFORM.                               " F_READ_DATA
+*--------------------------------------------------------------------*
+*      Form  f_fill_color
+*--------------------------------------------------------------------*
+FORM f_fill_color.
+
+  DATA :
+    ls_data TYPE ty_data,
+    ls_vbak TYPE ty_vbak.
+
+  LOOP AT gt_data INTO ls_data.
+    CLEAR ls_vbak.
+
+    MOVE-CORRESPONDING ls_data TO ls_vbak.
+    PERFORM f_modify_color USING 'NETWR' CHANGING ls_vbak.
+    PERFORM f_modify_color USING 'VBELN' CHANGING ls_vbak.
+
+*   Fill gt_vbak
+    APPEND ls_vbak TO gt_vbak.
+  ENDLOOP.
+
+ENDFORM.                               " F_FILL_COLOR
+*---------------------------------------------------------------------*
+*      Form  F_modify_color
+*---------------------------------------------------------------------*
+FORM f_modify_color USING u_fieldname TYPE lvc_fname
+                 CHANGING us_vbak     TYPE ty_vbak.
+  DATA :
+    l_rnd_value TYPE integer2,
+    ls_tabcolor TYPE lvc_s_scol.
+
+* Random value
+  CALL FUNCTION 'RANDOM_I2'
+       EXPORTING
+            rnd_min   = 0
+            rnd_max   = 3
+       IMPORTING
+            rnd_value = l_rnd_value.
+
+  CLEAR ls_tabcolor.
+  ls_tabcolor-fname = u_fieldname.
+
+  CASE l_rnd_value.
+    WHEN 0.
+      ls_tabcolor-color-col = 1.       " Blue.
+      ls_tabcolor-color-int = 0.
+      ls_tabcolor-color-inv = 0.
+    WHEN 1.
+      ls_tabcolor-color-col = 3.       " Yellow.
+      ls_tabcolor-color-int = 0.
+      ls_tabcolor-color-inv = 0.
+    WHEN 2.
+      ls_tabcolor-color-col = 5.       " Green.
+      ls_tabcolor-color-int = 0.
+      ls_tabcolor-color-inv = 0.
+    WHEN 3.
+      ls_tabcolor-color-col = 6.       " Red.
+      ls_tabcolor-color-int = 0.
+      ls_tabcolor-color-inv = 0.
+  ENDCASE.
+
+  INSERT ls_tabcolor INTO TABLE us_vbak-tabcolor.
+
+ENDFORM.                               " F_MODIFY_COLOR
+*---------------------------------------------------------------------*
+*      Form  f_display_data
+*---------------------------------------------------------------------*
+FORM f_display_data.
+
+  DATA:
+    ls_layout   TYPE slis_layout_alv,
+    ls_fieldcat TYPE slis_fieldcat_alv,
+    lt_fieldcat TYPE slis_t_fieldcat_alv.
+
+* Build the field catalog
+  m_fieldcat 'VKORG' 'VBAK'.
+  m_fieldcat 'KUNNR' 'VBAK'.
+  m_fieldcat 'VBELN' 'VBAK'.
+  m_fieldcat 'NETWR' 'VBAK'.
+
+* Fill Layout
+  ls_layout-coltab_fieldname  = 'TABCOLOR'.
+
+* Display the list
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+       EXPORTING
+            is_layout   = ls_layout
+            it_fieldcat = lt_fieldcat
+       TABLES
+            t_outtab    = gt_vbak.
+
+ENDFORM.                               " F_DISPLAY_DATA
+***************** END OF PROGRAM Z_ALV_CELL_COLOR *********************
+
+  

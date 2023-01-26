@@ -1,0 +1,13 @@
+
+"Lança mensagem de erro na tela do usuário, de acordo com a condição de preenchimento da célula.
+er_data_changed->add_protocol_entry(
+    EXPORTING
+        i_msgid     = '0K'
+        i_msgno     = '000'
+        i_msgty     = 'E'
+        i_msgv1     = 'Preencha o centro!'
+        i_msgv2     = space
+        i_msgv3     = space
+        i_fieldname = ls_good-fieldname
+        i_row_id    = ls_good-row_id
+).

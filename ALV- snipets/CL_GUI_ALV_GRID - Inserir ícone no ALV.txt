@@ -1,0 +1,13 @@
+1- Adicionar a importação do include:  INCLUDE <icon>.
+2- Adicionar na tabela interna o campo icone LIKE icon-id.
+3- Adicionar no fieldcat os atributos:
+      wa_fieldcat-fieldname = "ICONE".
+      wa_fieldcat-ref_field = "ID".
+      wa_fieldcat-ref_table = "ICON".
+      wa_fieldcat-coltext   = Nome da coluna".
+      wa_fieldcat-icon      = "X".
+      APPEND wa_fieldcat TO it_fieldcat.
+4- Na construção da tabela interna adicionar a linha que esta montando a constante de 
+icone que deseja mostrar:
+      wa_dados-icone = ICON_ASSIGN.
+5- Através da função SE16N obter as constantes na tabela ICON.

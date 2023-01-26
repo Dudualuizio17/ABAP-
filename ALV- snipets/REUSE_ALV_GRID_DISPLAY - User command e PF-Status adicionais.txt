@@ -1,0 +1,50 @@
+*&---------------------------------------------------------------------*
+*&      Form  F_PF_STATUS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_pf_status USING u_extab TYPE slis_t_extab. "Os parâmetros do FORM, deve ser respeitado como no exemplo.
+
+  SET PF-STATUS 'STANDARD_FULLSCREEN' OF PROGRAM 'SAPLKKBL'. "Só consegui fazer o USER-COMMAND funcionar, chamando esse PF-Status. Criando um e chamado o botão voltar, não parou o break
+                                                             "dentro do case no FORM F_USER_COMMAND_BASIC_GRID.
+ENDFORM.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  F_USER_COMMAND_BASIC_GRID
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM f_user_command_basic_grid USING p_ucomm      TYPE sy-ucomm
+                                     p_s_selfield TYPE slis_selfield.
+  CASE p_ucomm.
+    WHEN '&F03'.
+      CLEAR: lv_matnr_invalido.
+
+  ENDCASE.
+
+ENDFORM.
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+"No preenchimento das funções:
+
+"Preenche a ordem o USER-COMMAND será executado. Colocar nessa tabela todos os botões usados. Para pegar o código, basta entrar no Status do programa mencionado.
+  ls_eventexit-ucomm = '&F03'. "Voltar.
+  ls_eventexit-after = 'X'.
+  APPEND ls_eventexit TO lt_eventexit[].
+
+"Chamar a função passando os parâmetros de callback informados aqui.
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY'
+    EXPORTING
+      i_callback_program       = sy-repid
+      i_callback_pf_status_set = 'F_PF_STATUS' 
+      i_callback_user_command  = 'F_USER_COMMAND_BASIC_GRID' 
+      i_grid_title             = 'Lista de materiais inválidos'
+      is_layout                = ls_layout_basic
+      it_fieldcat              = lt_fieldcat_basic[]
+      it_event_exit            = lt_eventexit[]
+    TABLES
+      t_outtab                 = lt_zst_zdift037_matnr_erro[]
+    EXCEPTIONS
+      program_error            = 1
+      OTHERS                   = 2.
